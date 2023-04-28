@@ -1,10 +1,11 @@
 pub mod custom;
 pub mod discord;
 pub mod slack;
+pub mod mastodon;
 
 use crate::{feed::item::FeedItem, Result};
 
-use self::{custom::Custom, discord::Discord, slack::Slack};
+use self::{custom::Custom, discord::Discord, slack::Slack, mastodon::Mastodon};
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -19,6 +20,10 @@ pub enum SinkOptions {
     Slack {
         url: String,
     },
+    Mastodon {
+        url: String,
+        access_token: String,
+    },
     Custom {
         command: String,
         #[serde(default)]
@@ -31,6 +36,7 @@ impl SinkOptions {
         let sink = match self {
             SinkOptions::Discord { url } => AnySink::Discord(Discord::new(url, client.clone())?),
             SinkOptions::Slack { url } => AnySink::Slack(Slack::new(url, client.clone())?),
+            SinkOptions::Mastodon { url, access_token } => AnySink::Mastodon(Mastodon::new(url, access_token, client.clone())?),
             SinkOptions::Custom { command, arguments } => {
                 AnySink::Custom(Custom::new(command, arguments)?)
             }
@@ -53,6 +59,7 @@ pub trait Sink {
 pub enum AnySink {
     Discord(discord::Discord),
     Slack(slack::Slack),
+    Mastodon(mastodon::Mastodon),
     Custom(custom::Custom),
 }
 
@@ -66,6 +73,7 @@ impl Sink for AnySink {
         match self {
             AnySink::Discord(s) => s.push(items).await,
             AnySink::Slack(s) => s.push(items).await,
+            AnySink::Mastodon(s) => s.push(items).await,
             AnySink::Custom(s) => s.push(items).await,
         }
     }
@@ -75,6 +83,7 @@ impl Sink for AnySink {
         match self {
             AnySink::Discord(s) => s.shutdown().await,
             AnySink::Slack(s) => s.shutdown().await,
+            AnySink::Mastodon(s) => s.shutdown().await,
             AnySink::Custom(s) => s.shutdown().await,
         }
     }
