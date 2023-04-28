@@ -21,6 +21,8 @@ pub trait FeedItem<'a>: Sync {
 
     fn authors(&'a self) -> Vec<Author>;
 
+    fn comments(&'a self) -> Option<&str>;
+
     /// Feed metadata
     fn source(&'a self) -> Option<&Source>;
 }
@@ -91,6 +93,11 @@ impl<'a> FeedItem<'a> for rss::Item {
             }],
             None => Vec::default(),
         }
+    }
+
+    #[inline]
+    fn comments(&self) -> Option<&str> {
+        self.comments()
     }
 
     fn source(&'a self) -> Option<&Source> {
@@ -179,6 +186,11 @@ impl<'a> FeedItem<'a> for atom_syndication::Entry {
                 uri: v.uri(),
             })
             .collect()
+    }
+
+    #[inline]
+    fn comments(&self) -> Option<&str> {
+        None
     }
 
     fn source(&'a self) -> Option<&Source> {
@@ -284,6 +296,14 @@ impl<'a> FeedItem<'a> for Item<'a> {
         match self {
             Item::Rss { item, .. } => <rss::Item as FeedItem>::authors(item),
             Item::Atom { entry, .. } => <atom_syndication::Entry as FeedItem>::authors(entry),
+        }
+    }
+
+    #[inline]
+    fn comments(&self) -> Option<&str> {
+        match self {
+            Item::Rss { item, .. } => <rss::Item as FeedItem>::comments(item),
+            Item::Atom { entry, .. } => <atom_syndication::Entry as FeedItem>::comments(entry),
         }
     }
 
